@@ -19,10 +19,10 @@ app.post('/', function(req, res) {
         if(hasValidAttributes(request.required, req.body)) {
             request.execute(res, req.body);
         } else {
-            res.send("Did not include required attributes");
+            res.send(errorResponse("Did not include required attributes"));
         }
     } else {
-        res.send("Request does not exist");
+        res.send(errorResponse("Request does not exist"));
     }
 });
 
@@ -43,7 +43,7 @@ var handleRequest = {
                 if(err) {
                     result = errorResponse(err.message);
                 } else {
-                    result = results;
+                    result = basicResponse(results.affectedRows > 0);
                 }
                 res.send(result);
             });
@@ -64,7 +64,7 @@ var handleRequest = {
                 if(err) {
                     result = errorResponse(err.message);
                 } else {
-                    result = results;
+                    result = basicResponse(results.affectedRows > 0);
                 }
                 res.send(result);
             });
@@ -98,7 +98,7 @@ var handleRequest = {
                 if(err) {
                     result = errorResponse(err.message);
                 } else {
-                    result = results;
+                    result = basicResponse(results.affectedRows > 0);
                 }
                 res.send(result);
             });
@@ -133,7 +133,7 @@ var handleRequest = {
                 if (err) {
                     result = errorResponse(err.message);
                 } else {
-                    result = results;
+                    result = basicResponse(results.affectedRows > 0);
                 }
                 res.send(result);
             });
@@ -151,7 +151,7 @@ var handleRequest = {
                 if (err) {
                     result = errorResponse(err.message);
                 } else {
-                    result = results;
+                    result = basicResponse(results.affectedRows > 0);
                 }
                 res.send(result);
             });
@@ -169,29 +169,13 @@ var handleRequest = {
                 if (err) {
                     result = errorResponse(err.message);
                 } else {
-                    result = results;
+                    result = basicResponse(results.affectedRows > 0);
                 }
                 res.send(result);
             });
         }
     }
 };
-
-function createMultiSQLSet(list) {
-    var result = "";
-    for(var x = 0; x < list.length - 1; x++) {
-        result += list[x] + ",";
-    }
-    return result + list[list.length - 1];
-}
-
-function createSQLSet() {
-    var result = "(";
-    for(var x = 0; x < arguments.length - 1; x++) {
-        result += mysql.escape(arguments[x]) + ",";
-    }
-    return result + mysql.escape(arguments[arguments.length - 1]) + ")";
-}
 
 function basicResponse(successful) {
     return {
