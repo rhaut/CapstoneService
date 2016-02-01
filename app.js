@@ -1,58 +1,224 @@
 var express = require('express');
-var path = require('path');
-var favicon = require('serve-favicon');
-var logger = require('morgan');
-var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
-var routes = require('./routes/index');
-
 var app = express();
-
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
-
-// uncomment after placing your favicon in /public
-//app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
-app.use(logger('dev'));
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', routes);
-
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  var err = new Error('Not Found');
-  err.status = 404;
-  next(err);
+var mysql      = require('mysql');
+var connection = mysql.createConnection({
+    host     : 'localhost',
+    user     : 'root',
+    password : '',
+    database : 'gamedb'
 });
 
-// error handlers
+app.post('/', function(req, res) {
+    console.log(req.body);
+    if(isValidRequest(req, handleRequest)) {
+        var request = handleRequest[req.query["request"]];
+        if(hasValidAttributes(request.required, req.body)) {
+            request.execute(res, req.body);
+        } else {
+            res.send("Did not include required attributes");
+        }
+    } else {
+        res.send("Request does not exist");
+    }
+});
 
-// development error handler
-// will print stacktrace
-if (app.get('env') === 'development') {
-  app.use(function(err, req, res, next) {
-    res.status(err.status || 500);
-    res.render('error', {
-      message: err.message,
-      error: err
-    });
-  });
+app.use(function(err, req, res, next) {
+    res.send(err.message);
+});
+
+var handleRequest = {
+    "add_user": {
+        "required": ["user_id", "name"],
+        "execute": function (res, body) {
+            var sql = 'INSERT INTO users (user_id, user_name) VALUES(' +
+                mysql.escape(body['user_id']) + ", " +
+                mysql.escape(body['name']) +
+                ')';
+            connection.query(sql, function(err, results) {
+                var result;
+                if(err) {
+                    result = errorResponse(err.message);
+                } else {
+                    result = results;
+                }
+                res.send(result);
+            });
+        }
+    },
+    "create_game": {
+        "required": ["user_id", "name", "has_pass", "hash_pass", "teams"],
+        "execute": function (res, body) {
+            var sql = 'INSERT INTO games (user_id, game_name, has_pass, hash_pass, teams) VALUES(' +
+                mysql.escape(body['user_id']) + ', ' +
+                mysql.escape(body['name']) + ', ' +
+                mysql.escape(body['has_pass']) + ', ' +
+                mysql.escape(body['hash_pass']) + ', ' +
+                mysql.escape(body['teams']) +
+                ')';
+            connection.query(sql, function(err, results) {
+                var result;
+                if(err) {
+                    result = errorResponse(err.message);
+                } else {
+                    result = results;
+                }
+                res.send(result);
+            });
+        }
+    },
+    "get_games": {
+        "required": ["user_id"],
+        "execute": function (res, body) {
+            var sql = 'SELECT games.game_id, games.game_name, games.has_pass, games.hash_pass, games.teams, users.user_name FROM games, users WHERE users.user_id=games.user_id';
+            connection.query(sql, function(err, results) {
+                var result;
+                if(err) {
+                    result = errorResponse(err.message);
+                } else {
+                    result = results;
+                }
+                res.send(result);
+            });
+        }
+    },
+    "join_game": {
+        "required": ["user_id", "game_id", "team_id"],
+        "execute": function (res, body) {
+            var sql = 'INSERT INTO players (user_id, game_id, team_id) VALUES(' +
+                mysql.escape(body['user_id']) + ', ' +
+                mysql.escape(body['game_id']) + ', ' +
+                mysql.escape(body['team_id']) +
+                ')';
+            connection.query(sql, function(err, results) {
+                var result;
+                if(err) {
+                    result = errorResponse(err.message);
+                } else {
+                    result = results;
+                }
+                res.send(result);
+            });
+        }
+    },
+    "get_players": {
+        "required": ["user_id", "game_id"],
+        "execute": function (res, body) {
+            var sql = 'SELECT users.user_name, players.team_id, players.points FROM users, players, games WHERE games.game_id=' +
+                mysql.escape(body['game_id']);
+            connection.query(sql, function (err, results) {
+                var result;
+                if (err) {
+                    result = errorResponse(err.message);
+                } else {
+                    result = results;
+                }
+                res.send(result);
+            });
+        }
+    },
+    "update_coordinates": {
+        "required": ["user_id", "longitude", "latitude"],
+        "execute": function (res, body) {
+            var sql = 'UPDATE users SET ' +
+                'longitude='+ mysql.escape(body['longitude']) + ', ' +
+                'latitude=' + mysql.escape(body['latitude']) +
+                ' WHERE ' +
+                'users.user_id=' + mysql.escape(body['user_id']);
+            connection.query(sql, function (err, results) {
+                var result;
+                if (err) {
+                    result = errorResponse(err.message);
+                } else {
+                    result = results;
+                }
+                res.send(result);
+            });
+        }
+    },
+    "quit_game": {
+        "required": ["user_id", "game_id"],
+        "execute": function (res, body) {
+            var sql = 'DELETE FROM players WHERE ' +
+                'user_id=' + mysql.escape(body['user_id']) +
+                ' AND ' +
+                'game_id=' + mysql.escape(body['game_id']);
+            connection.query(sql, function (err, results) {
+                var result;
+                if (err) {
+                    result = errorResponse(err.message);
+                } else {
+                    result = results;
+                }
+                res.send(result);
+            });
+        }
+    },
+    "delete_game": {
+        "required": ["user_id", "game_id"],
+        "execute": function (res, body) {
+            var sql = 'DELETE FROM games WHERE ' +
+                'game_id=' + mysql.escape(body['game_id']) +
+                ' AND ' +
+                'user_id=' + mysql.escape(body['user_id']);
+            connection.query(sql, function (err, results) {
+                var result;
+                if (err) {
+                    result = errorResponse(err.message);
+                } else {
+                    result = results;
+                }
+                res.send(result);
+            });
+        }
+    }
+};
+
+function createMultiSQLSet(list) {
+    var result = "";
+    for(var x = 0; x < list.length - 1; x++) {
+        result += list[x] + ",";
+    }
+    return result + list[list.length - 1];
 }
 
-// production error handler
-// no stacktraces leaked to user
-app.use(function(err, req, res, next) {
-  res.status(err.status || 500);
-  res.render('error', {
-    message: err.message,
-    error: {}
-  });
-});
+function createSQLSet() {
+    var result = "(";
+    for(var x = 0; x < arguments.length - 1; x++) {
+        result += mysql.escape(arguments[x]) + ",";
+    }
+    return result + mysql.escape(arguments[arguments.length - 1]) + ")";
+}
 
+function basicResponse(successful) {
+    return {
+        "success":successful
+    }
+}
+
+function errorResponse(message) {
+    return {
+        "success":false,
+        "message":message
+    }
+}
+
+function hasValidAttributes(attributes, object) {
+    for(var x = 0; x < attributes.length; x++) {
+        if(!(attributes[x] in object)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function isValidRequest(req, handler) {
+    console.log(req.query["request"]);
+    return "request" in req.query &&
+            req.query["request"] in handler;
+}
 
 module.exports = app;
