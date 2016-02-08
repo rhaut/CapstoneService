@@ -107,7 +107,7 @@ var handleRequest = {
     "get_players": {
         "required": ["user_id", "game_id"],
         "execute": function (res, body) {
-            var sql = 'SELECT users.user_name, players.team_id, players.points FROM users, players, games WHERE games.game_id=' +
+            var sql = 'SELECT users.user_id, users.user_name, players.team_id, players.points FROM users, players, games WHERE users.user_id=players.user_id AND players.game_id=games.game_id AND games.game_id=' +
                 mysql.escape(body['game_id']);
             connection.query(sql, function (err, results) {
                 var result;
