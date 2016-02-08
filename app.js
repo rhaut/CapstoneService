@@ -107,7 +107,7 @@ var handleRequest = {
     "get_players": {
         "required": ["user_id", "game_id"],
         "execute": function (res, body) {
-            var sql = 'SELECT users.user_name, players.team_id, players.points FROM users, players, games WHERE games.game_id=' +
+            var sql = 'SELECT users.user_id, users.user_name, players.team_id, players.points FROM users, players, games WHERE users.user_id=players.user_id AND players.game_id=games.game_id AND games.game_id=' +
                 mysql.escape(body['game_id']);
             connection.query(sql, function (err, results) {
                 var result;
@@ -174,7 +174,47 @@ var handleRequest = {
                 res.send(result);
             });
         }
+    },
+    "send_message": {
+        "required": ["user_id", "game_id", "team_only", "message"],
+        "execute": function (res, body) {
+            var sql = 'INSERT INTO messages (user_id, game_id, team_only, message) VALUES(' +
+                mysql.escape(body['user_id']) + ", " +
+                mysql.escape(body['game_id']) + ", " +
+                mysql.escape(body['team_only']) + ", " +
+                mysql.escape(body['message']) +
+                ')';
+            connection.query(sql, function (err, results) {
+                var result;
+                if (err) {
+                    result = errorResponse(err.message);
+                } else {
+                    result = basicResponse(results.affectedRows > 0);
+                }
+                res.send(result);
+            });
+        }
+    },
+    "get_messages": {
+        "required": ["user_id", "game_id", "team_id"],
+        "execute": function (res, body) {
+            var sql = 'SELECT users.user_name, messages.message FROM users, players, games, messages WHERE ' +
+                'messages.game_id=' + body['game_id'] +
+                ' AND (team_only=false OR (players.game_id=messages.game_id AND ' +
+                'players.team_id=' + body['team_id'] +
+                ' AND players.user_id=messages.user_id))';
+            connection.query(sql, function (err, results) {
+                var result;
+                if (err) {
+                    result = errorResponse(err.message);
+                } else {
+                    result = results;
+                }
+                res.send(result);
+            });
+        }
     }
+
 };
 
 function basicResponse(successful) {
