@@ -73,7 +73,7 @@ var handleRequest = {
     "get_games": {
         "required": ["user_id"],
         "execute": function (res, body) {
-            var sql = 'SELECT games.game_id, games.game_name, games.has_pass, games.hash_pass, games.teams, users.user_name FROM games, users WHERE users.user_id=games.user_id';
+            var sql = 'SELECT users.user_name, other.game_id, other.game_name, other.has_pass, other.playercount FROM users, (SELECT games.game_id, games.game_name, games.has_pass, games.user_id, COUNT(players.game_id) AS playercount FROM games LEFT JOIN players ON games.game_id=players.game_id GROUP BY games.game_id) as other WHERE users.user_id=other.user_id';
             connection.query(sql, function(err, results) {
                 var result;
                 if(err) {
@@ -107,7 +107,7 @@ var handleRequest = {
     "get_players": {
         "required": ["user_id", "game_id"],
         "execute": function (res, body) {
-            var sql = 'SELECT users.user_id, users.user_name, players.team_id, players.points FROM users, players, games WHERE users.user_id=players.user_id AND players.game_id=games.game_id AND games.game_id=' +
+            var sql = 'SELECT users.user_id, users.user_name, players.team_id, players.points, users.latitude, users.longitude FROM users, players, games WHERE users.user_id=players.user_id AND players.game_id=games.game_id AND games.game_id=' +
                 mysql.escape(body['game_id']);
             connection.query(sql, function (err, results) {
                 var result;
