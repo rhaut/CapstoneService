@@ -198,11 +198,9 @@ var handleRequest = {
     "get_messages": {
         "required": ["user_id", "game_id", "team_id"],
         "execute": function (res, body) {
-            var sql = 'SELECT users.user_name, messages.message FROM users, players, games, messages WHERE ' +
-                'messages.game_id=' + body['game_id'] +
-                ' AND (team_only=false OR (players.game_id=messages.game_id AND ' +
-                'players.team_id=' + body['team_id'] +
-                ' AND players.user_id=messages.user_id))';
+            var sql = 'SELECT messages.message_id, users.user_id, users.user_name, messages.message FROM users, players, games, messages WHERE ' +
+                'games.game_id=' + body['game_id'] +
+                ' AND games.game_id=messages.game_id AND games.game_id=players.game_id AND messages.user_id=users.user_id AND users.user_id=players.user_id';
             connection.query(sql, function (err, results) {
                 var result;
                 if (err) {
