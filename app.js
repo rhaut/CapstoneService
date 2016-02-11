@@ -52,21 +52,29 @@ var handleRequest = {
     "create_game": {
         "required": ["user_id", "name", "has_pass", "hash_pass", "teams"],
         "execute": function (res, body) {
-            var sql = 'INSERT INTO games (user_id, game_name, has_pass, hash_pass, teams) VALUES(' +
+            var sql = 'INSERT INTO games (user_id, game_name, has_pass, hash_pass) VALUES(' +
                 mysql.escape(body['user_id']) + ', ' +
                 mysql.escape(body['name']) + ', ' +
                 mysql.escape(body['has_pass']) + ', ' +
-                mysql.escape(body['hash_pass']) + ', ' +
-                mysql.escape(body['teams']) +
+                mysql.escape(body['hash_pass']) +
                 ')';
             connection.query(sql, function(err, results) {
                 var result;
                 if(err) {
-                    result = errorResponse(err.message);
+                    res.send(errorResponse(err.message));
                 } else {
-                    result = basicResponse(results.affectedRows > 0);
+                    var sql = 'INSERT INTO teams (game_id) VALUES ' + getTeamValues(results.insertId, body['teams']);
+                    console.log(sql);
+                    connection.query(sql, function(err, results) {
+                        var result;
+                        if(err) {
+                            result = errorResponse(err.message);
+                        } else {
+                            result = basicResponse(results.affectedRows > 0);
+                        }
+                        res.send(result);
+                    });
                 }
-                res.send(result);
             });
         }
     },
@@ -88,10 +96,9 @@ var handleRequest = {
     "join_game": {
         "required": ["user_id", "game_id", "team_id"],
         "execute": function (res, body) {
-            var sql = 'INSERT INTO players (user_id, game_id, team_id) VALUES(' +
+            var sql = 'INSERT INTO players (user_id, game_id) VALUES(' +
                 mysql.escape(body['user_id']) + ', ' +
-                mysql.escape(body['game_id']) + ', ' +
-                mysql.escape(body['team_id']) +
+                mysql.escape(body['game_id']) +
                 ')';
             connection.query(sql, function(err, results) {
                 var result;
@@ -214,6 +221,14 @@ var handleRequest = {
     }
 
 };
+
+function getTeamValues(gameId, rows) {
+    var result = "";
+    for(var x = 0; x < rows - 1; x++) {
+        result += "(" + gameId + ")" + ",";
+    }
+    return result + "(" + gameId + ");";
+}
 
 function basicResponse(successful) {
     return {
