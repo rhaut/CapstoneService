@@ -68,7 +68,6 @@ CREATE TABLE IF NOT EXISTS `players` (
   UNIQUE KEY `team_id` (`team_id`),
   KEY `game_id` (`game_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
-
 -- --------------------------------------------------------
 
 --

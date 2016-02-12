@@ -59,7 +59,6 @@ var handleRequest = {
                 mysql.escape(body['hash_pass']) +
                 ')';
             connection.query(sql, function(err, results) {
-                var result;
                 if(err) {
                     res.send(errorResponse(err.message));
                 } else {
