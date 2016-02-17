@@ -80,7 +80,7 @@ var handleRequest = {
     "get_games": {
         "required": ["user_id"],
         "execute": function (res, body) {
-            var sql = 'SELECT users.user_name, other.game_id, other.game_name, other.has_pass, other.playercount FROM users, (SELECT games.game_id, games.game_name, games.has_pass, games.user_id, COUNT(players.game_id) AS playercount FROM games LEFT JOIN players ON games.game_id=players.game_id GROUP BY games.game_id) as other WHERE users.user_id=other.user_id';
+            var sql = 'SELECT games.game_id, games.user_id, games.has_pass, players.player_count, teams.team_count, users.user_name FROM users, games LEFT JOIN ( (SELECT players.game_id, COUNT(players.user_id) AS player_count FROM players GROUP BY game_id) players ) ON games.game_id=players.game_id LEFT JOIN ( (SELECT teams.game_id, COUNT(teams.team_id) AS team_count FROM teams GROUP BY game_id) teams ) ON games.game_id=teams.game_id WHERE games.user_id=users.user_id AND teams.team_count > 0';
             connection.query(sql, function(err, results) {
                 var result;
                 if(err) {
